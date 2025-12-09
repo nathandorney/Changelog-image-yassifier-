@@ -10,6 +10,7 @@ const PADDING = 60;
 export default function ImageEditor() {
 	const [image, setImage] = useState<HTMLImageElement | null>(null);
 	const [copied, setCopied] = useState(false);
+	const [isDragging, setIsDragging] = useState(false);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 
 	useEffect(() => {
@@ -143,6 +144,25 @@ export default function ImageEditor() {
 		reader.readAsDataURL(file);
 	};
 
+	const handleDrop = (e: React.DragEvent) => {
+		e.preventDefault();
+		setIsDragging(false);
+
+		const file = e.dataTransfer.files[0];
+		if (file && file.type.startsWith("image/")) {
+			loadImageFromFile(file);
+		}
+	};
+
+	const handleDragOver = (e: React.DragEvent) => {
+		e.preventDefault();
+		setIsDragging(true);
+	};
+
+	const handleDragLeave = () => {
+		setIsDragging(false);
+	};
+
 	const handleDownload = () => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -181,13 +201,24 @@ export default function ImageEditor() {
 	};
 
 	return (
-		<div className="flex flex-col items-center gap-6 w-full max-w-7xl mx-auto p-8">
+		<div
+			className="flex flex-col items-center gap-6 w-full max-w-7xl mx-auto p-8"
+			onDrop={handleDrop}
+			onDragOver={handleDragOver}
+			onDragLeave={handleDragLeave}
+		>
 			<h1 className="text-4xl font-bold text-zinc-900 mb-2">
 				Changelog image yassifier 💅
 			</h1>
 
 			{!image && (
-				<div className="w-full border-2 border-dashed rounded-lg p-12 text-center border-zinc-300 bg-zinc-50">
+				<div
+					className={`w-full min-h-[60vh] border-2 border-dashed rounded-lg p-12 text-center transition-colors flex items-center justify-center ${
+						isDragging
+							? "border-blue-500 bg-blue-50"
+							: "border-zinc-300 bg-zinc-50"
+					}`}
+				>
 					<div className="flex flex-col items-center gap-4">
 						<svg
 							className="w-16 h-16 text-zinc-400"
@@ -204,10 +235,11 @@ export default function ImageEditor() {
 						</svg>
 						<div>
 							<p className="text-2xl font-semibold text-zinc-700 mb-2">
-								Paste your screenshot
+								Paste your screenshots
 							</p>
 							<p className="text-zinc-600">
-								Press Cmd+V to paste the screenshot from your clipboard
+								Press Cmd+V to paste the screenshot from your clipboard or drag
+								and drop an image
 							</p>
 						</div>
 					</div>
@@ -216,26 +248,44 @@ export default function ImageEditor() {
 
 			{image && (
 				<div className="flex flex-col items-center gap-4 w-full">
-					<canvas
-						ref={canvasRef}
-						className=" max-w-full h-auto"
-						style={{ maxWidth: "100%", height: "auto" }}
-					/>
-					<div className="flex gap-3">
-						<button
-							type="button"
-							onClick={handleCopyToClipboard}
-							className="px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium cursor-pointer w-[140px]"
-						>
-							{copied ? "Copied!" : "Copy image"}
-						</button>
-						<button
-							type="button"
-							onClick={handleDownload}
-							className="px-6 py-3 text-black rounded-lg border border-gray-300 transition-colors font-medium cursor-pointer"
-						>
-							Download
-						</button>
+					<div
+						className={`relative ${
+							isDragging ? "ring-4 ring-blue-500 rounded-lg" : ""
+						}`}
+					>
+						<canvas
+							ref={canvasRef}
+							className=" max-w-full h-auto"
+							style={{ maxWidth: "100%", height: "auto" }}
+						/>
+						{isDragging && (
+							<div className="absolute inset-0 bg-blue-500 bg-opacity-10 rounded-lg flex items-center justify-center">
+								<p className="text-blue-700 text-xl font-semibold">
+									Drop to replace image
+								</p>
+							</div>
+						)}
+					</div>
+					<div className="flex flex-col items-center gap-2">
+						<div className="flex gap-3">
+							<button
+								type="button"
+								onClick={handleCopyToClipboard}
+								className="px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium cursor-pointer w-[140px]"
+							>
+								{copied ? "Copied!" : "Copy image"}
+							</button>
+							<button
+								type="button"
+								onClick={handleDownload}
+								className="px-6 py-3 text-black rounded-lg border border-gray-300 transition-colors font-medium cursor-pointer"
+							>
+								Download
+							</button>
+						</div>
+						<p className="text-sm text-zinc-500">
+							Paste or drag another image to replace
+						</p>
 					</div>
 				</div>
 			)}
